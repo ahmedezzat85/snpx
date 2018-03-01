@@ -8,11 +8,12 @@ def parse_cmd_line_options():
     """
     # Base argument parser for common arguments
     base_parser = argparse.ArgumentParser(add_help=False)
-    base_parser.add_argument('--model-name'  , type=str , help='DNN Model name. e.g. VGG.')
+    base_parser.add_argument('--model'       , type=str , help='DNN Model name. e.g. VGG.')
     base_parser.add_argument('--model-param' , type=str , help='Model Specific Parameters.')
     base_parser.add_argument('--input-size'  , type=int , help='Input Image Size.')
     base_parser.add_argument('--data-format' , type=str , help='Data Format. Either NCHW or NHWC.')
     base_parser.add_argument('--log-subdir'  , type=str , help='Logs Directory')
+    base_parser.add_argument('--dataset'     , type=str , help='Target Dataset name.')
 
     arg_parser = argparse.ArgumentParser(prog='tf_dnn', usage='tf_dnn <subcommand> [args]', 
                                          description='Tensorflow Deep Learning Module.')

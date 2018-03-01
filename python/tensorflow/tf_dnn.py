@@ -9,12 +9,8 @@ from importlib import import_module
 
 import numpy as np
 import tensorflow as tf
-import pandas as pd
 
 import utils
-import mv_dataset
-
-_CSV_TEST_SET_FILE = os.path.join(mv_dataset.DATASET_DIR, 'eval_set.csv')
 
 class TFClassifier(object):
     """ Abtraction of TensorFlow functionality.
@@ -44,7 +40,7 @@ class TFClassifier(object):
         self.summary_list = []
 
         # Get the neural network model function
-        net_module = import_module('model.' + model_name)
+        net_module = import_module('models.' + model_name)
         self.model = net_module.TFModel(self.dtype, data_format, dataset.num_classes, *model_params)
         
         self.chkpt_dir = os.path.join(self.log_dir, 'chkpt')

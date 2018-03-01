@@ -3,26 +3,27 @@
 import os
 import json
 from datetime import datetime
+from importlib import import_module
 
 import utils
 from tf_dnn import TFClassifier
-from mv_dataset import TFDatasetReader
 from arg_parser import parse_cmd_line_options
 
 _CUR_DIR       = os.path.dirname(__file__)
-_LOGS_ROOT_DIR = os.path.join(_CUR_DIR, '..', 'logs')
-_MODEL_BIN_DIR = os.path.join(_CUR_DIR, '..', 'bin')
+_LOGS_ROOT_DIR = os.path.join(_CUR_DIR, '..', '..', 'logs')
+_MODEL_BIN_DIR = os.path.join(_CUR_DIR, '..', '..', 'bin')
 
 class DeepNN(object):
     """
     """
     def __init__(self, args):
-        self.flags    = args
-        self.logs_dir = os.path.join(_LOGS_ROOT_DIR, args.model_name, args.log_subdir)
-        self.bin_dir  = os.path.join(_MODEL_BIN_DIR, args.model_name, args.log_subdir)
-        model_param   = args.model_param.strip().split(',') if args.model_param is not None else []
-        self.dataset = TFDatasetReader(image_size=args.input_size)
-        self.module  = TFClassifier(self.dataset, args.model_name, args.data_format, self.logs_dir, *model_param)
+        self.flags     = args
+        self.logs_dir  = os.path.join(_LOGS_ROOT_DIR, args.model, args.log_subdir)
+        self.bin_dir   = os.path.join(_MODEL_BIN_DIR, args.model, args.log_subdir)
+        dataset_module = import_module('datasets.' + args.dataset + '.preprocess')
+        model_param    = args.model_param.strip().split(',') if args.model_param is not None else []
+        self.dataset   = dataset_module.TFDatasetReader(image_size=args.input_size)
+        self.module    = TFClassifier(self.dataset, args.model, args.data_format, self.logs_dir, *model_param)
 
     def train(self):        
         # Pack the hyper-parameters
