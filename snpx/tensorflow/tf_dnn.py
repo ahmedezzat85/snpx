@@ -10,7 +10,7 @@ from importlib import import_module
 import numpy as np
 import tensorflow as tf
 
-import utils
+from .. import utils
 
 class TFClassifier(object):
     """ Abtraction of TensorFlow functionality.
@@ -40,7 +40,7 @@ class TFClassifier(object):
         self.summary_list = []
 
         # Get the neural network model function
-        net_module = import_module('models.' + model_name)
+        net_module = import_module('snpx.tensorflow.models.' + model_name)
         self.model = net_module.TFModel(self.dtype, data_format, dataset.num_classes, *model_params)
         
         self.chkpt_dir = os.path.join(self.log_dir, 'chkpt')

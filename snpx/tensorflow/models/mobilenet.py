@@ -6,9 +6,9 @@ import os
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
 from . mobilenet_v1 import mobilenet_v1, mobilenet_v1_arg_scope, Conv, DepthSepConv
+from snpx import PRETRAINED_MODELS_ROOT_DIR
 
-_CUR_DIR = os.path.dirname(__file__)
-_MODEL_DIR = os.path.join(_CUR_DIR, '..', '..', '..', 'pretrained_models', 'mobilenet_v1')
+_MODEL_DIR = os.path.join(PRETRAINED_MODELS_ROOT_DIR, 'mobilenet_v1')
 
 # _CONV_DEFS specifies the MobileNet body
 _FREEZE_ALL = [

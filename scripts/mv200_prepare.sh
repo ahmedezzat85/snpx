@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DATASET_DIR=$PWD/../python/tensorflow/dataset/mv-200
+DATASET_DIR=$PWD/../python/tensorflow/datasets/mv_200
 
 cd $DATASET_DIR
 wget "https://www.topcoder.com/contest/problem/IntelMovidius/training.tar"

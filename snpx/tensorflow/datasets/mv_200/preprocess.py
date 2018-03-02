@@ -13,8 +13,8 @@ import numpy as np
 import tensorflow as tf
 import pandas as pd
 
-import utils
-from vgg_preprocessing import preprocess_image
+from snpx import utils
+from snpx.tensorflow.vgg_preprocessing import preprocess_image
 
 ##=======##=======##=======##
 # CONSTANTS
@@ -25,7 +25,7 @@ _MAX_IMG_PER_TF_REC = 16000
 _TRAIN_SET_SIZE     = 76000
 _EVAL_SET_SIZE      = _DATASET_SIZE - _TRAIN_SET_SIZE
 
-DATASET_DIR = os.path.join(os.path.dirname(__file__), '..', 'dataset')
+DATASET_DIR = os.path.dirname(__file__)
 
 _IMAGE_TFREC_STRUCTURE = {
         'image' : tf.FixedLenFeature([], tf.string),

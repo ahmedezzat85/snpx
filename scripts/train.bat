@@ -1,7 +1,7 @@
 @echo off
 
 set CWD=%cd%
-set EXEC_DIR=%CWD%\..\python\tensorflow\
+set EXEC_DIR=%CWD%\..\
 
 set PYTHON=python
 set DATASET=mv_200

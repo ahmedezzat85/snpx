@@ -1,9 +1,9 @@
+from __future__ import absolute_import
+
 import os
 import cv2
 import logging
-import tensorflow as tf
-import vgg_preprocessing
-from imagenet_downloader import ImageNetDownloader
+from . imagenet_downloader import ImageNetDownloader
 
 class DictToAttrs(object):
     def __init__(self, d):
