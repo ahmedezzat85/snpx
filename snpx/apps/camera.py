@@ -141,6 +141,12 @@ try:
             self.stopped = False
             self.setup   = True
  
+        def default_cb(self, frame):
+            cv2.imshow(self.name, frame)
+            cv2.waitKey(1)
+            if Esc_key_pressed(): return True
+            return False
+
         def setup_scene(self):
             """ Set the fixed scene of the camera."""
             def frame_cb(frame):
@@ -152,27 +158,24 @@ try:
                 return stop_cap
 
             if self.setup == False: return
-            self.start_video_capture(frame_cb)
+            self.start(frame_cb)
 
-        def start_video_capture(self, capture_cb=None):
+        def start(self, capture_cb=None):
             self.cap = PiRGBArray(self.cam, size=self.cam.resolution)
             sleep(0.1) # allow the camera to warmup
             stop_cap = False
+            callback = self.default_cb if capture_cb is None else capture_cb
             for pi_frame in self.cam.capture_continuous(self.cap, format="bgr", use_video_port = True):
                 frame = pi_frame.array
                 # Pass the frame to the callback
-                if capture_cb is None:
-                    cv2.imshow(self.name, frame)
-                else:
-                    stop_cap = capture_cb(frame)
-                
+                stop_cap = callback(frame)                
                 self.cap.truncate(0)
                 if stop_cap is True: break
             
         def stop(self):
             self.stopped = True
 
-        def get_frame(self):
+        def read(self):
             self.cam.capture(self.cap, format="bgr", use_video_port=True)
             frame = self.cap.array
             self.cap.truncate(0)
