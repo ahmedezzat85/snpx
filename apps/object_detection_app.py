@@ -1,8 +1,7 @@
 from __future__ import absolute_import
 
 import argparse
-from snpx.apps import snpx_camera
-from snpx.apps import SNPXObjectDetector
+from snpx.apps import snpx_camera, snpx_object_detector
 
 def main():
     """ """
@@ -16,9 +15,7 @@ def main():
     r1,r2 = args.resolution.split('x')
     resolution = (int(r1), int(r2))
     snpx_cam = snpx_camera(args.camera, 'Synaplexus Object Detection App', resolution)
-    detector = SNPXObjectDetector(snpx_cam, args.model, args.platform)
-    detector.start()
-    detector.stop()
+    snpx_object_detector(args.platform, snpx_cam, args.model)
     
 if __name__ == "__main__":
     main()

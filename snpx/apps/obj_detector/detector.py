@@ -5,13 +5,14 @@ import cv2
 import numpy as np
 from time import time, sleep
 from datetime import datetime
+from imutils.video import FPS
+
 from snpx import utils
 from . detection_models import get_model
-from . mvncs_detector import MvNCSDetector
-from . opencv_detector import OpencvDetector
+from .. mvnc_dev import MvNCS
 
-class SNPXObjectDetector(object):
-    """ Abstraction for Object Detector.
+class SNPXBaseDetector(object):
+    """ Base class for all Object Detector platforms.
 
     Parameters
     ----------
@@ -22,30 +23,49 @@ class SNPXObjectDetector(object):
     draw_detections: bool
         Whether to draw bounding boxes on detected objects or not. 
     """
-    def __init__(self, camera, detector_model_name, platform='mvncs', det_cb=None):
-        self.cam      = camera
-        self.model    = get_model(detector_model_name)
-        if det_cb is None: det_cb = self.default_cb
-        if platform == 'mvncs':
-            self.detector = MvNCSDetector(self.model, det_cb)
-        elif platform == 'opencv':
-            self.detector = OpencvDetector(self.model, det_cb)
-
-    def start(self):
-        """ """
-        self.cam.start(self.detector)
-
-    def stop(self):
-        """ """
-        self.cam.close()
-        self.detector.close()
-
+    def __init__(self, camera, model_name, det_cb):
+        self.cam     = camera
+        self.model   = get_model(model_name)
+        self.det_cb  = det_cb if det_cb is not None else self.default_cb
+        self.stopped = False
+        
     def default_cb(self, frame, bboxes):
         self.draw_bounding_boxes(frame, bboxes)
         cv2.imshow(self.cam.name, frame)
-        cv2.waitKey(10)
-        return False
+        cv2.waitKey(1)
+        if utils.Esc_key_pressed():
+            self.stop()
+
+    def start(self):
+        self.fps = FPS().start()
+        self.cam.start(self)
+
+    def __call__(self, frame):
+        """ Process a frame from camera. The frame is queued in the Frame FIFO for 
+        later processing through the detection_task.
         
+        Parameters
+        ----------
+        frame: numpy.ndarray
+            Captured frame from Camera Device.
+        
+        Returns
+        -------
+        A boolean flag whether the capturing is stopped or not.
+        """
+        if self.stopped is False:
+            self.detect(frame)
+        return self.stopped
+
+    def detect(self, frame):
+        raise NotImplementedError('Must be implemented by Child Classes only')
+
+    def stop(self):
+        self.stopped = True
+        self.fps.stop()
+        print("Elapsed = {:.2f}".format(self.fps.elapsed()))
+        print("FPS     = {:.2f}".format(self.fps.fps()))
+
     def draw_box(self, img, box, box_color=(0, 255, 0)):
         """ draw a single bounding box on the image """
         name, x_start, x_end, y_start, y_end, score = box
@@ -64,4 +84,118 @@ class SNPXObjectDetector(object):
 
     def draw_bounding_boxes(self, img, bboxes):
         for bbox in bboxes:
-            self.draw_box(img, bbox)
+            self.draw_box(img, bbox)    
+        
+class SNPXOpenCVDetector(SNPXBaseDetector):
+    """ """
+    def __init__(self, camera, model_name, det_cb=None):
+        super().__init__(camera, model_name, det_cb)
+        prototxt    = self.model.model_prfx + '.prototxt'
+        weights     = self.model.model_prfx + '.caffemodel'
+        self.net    = cv2.dnn.readNetFromCaffe(prototxt, weights)
+
+    def detect(self, frame):
+        """ Process a frame from camera. The frame is queued in the Frame FIFO for 
+        later processing through the detection_task.
+        
+        Parameters
+        ----------
+        frame: numpy.ndarray
+            Captured frame from Camera Device.
+        
+        Returns
+        -------
+        A boolean flag whether the capturing is stopped or not.
+        """
+        img = self.model.preprocess(frame, resize_only=True)
+        img = cv2.dnn.blobFromImage(img, self.model.scale, self.model.in_size, self.model.mean, False)
+        self.net.setInput(img)
+        net_out = self.net.forward()
+        bboxes  = self.model.postprocess(frame, net_out)
+        self.det_cb(frame, bboxes)
+        self.fps.update()
+
+    def stop(self):
+        super().stop()
+
+    def close(self):
+        pass
+
+class SNPXMvNCSDetector(SNPXBaseDetector):
+    """ """
+    def __init__(self, camera, model_name, det_cb=None):
+        super().__init__(camera, model_name, det_cb)
+        self.inp_q      = Queue(2)
+        self.bboxes     = None
+        self.net_out    = None
+        self.stopped    = False
+        self.prev_frame = None
+
+        # Open the NCS device
+        ncs_graph = self.model.model_prfx + '.graph'
+        self.mvncs = MvNCS(dev_idx=0, dont_block=True)
+        self.mvncs.load_model(ncs_graph)
+
+        # Start the detection thread
+        Thread(target=self.detection_task).start()
+
+    def process_frame(self, frame, preproc):
+        """ """
+        # Load frame for Inference
+        self.mvncs.load_input(preproc)
+
+        # Process previous Inference
+        if self.net_out is not None:
+            self.bboxes = self.postprocess(self.prev_frame, self.net_out)
+            self.det_cb(self.prev_frame, self.bboxes)
+            self.fps.update()
+
+        # Get Inference Result
+        self.net_out, _ = self.mvncs.get_output()
+        self.prev_frame = frame
+
+    def postprocess(self, frame, net_out):
+        """ """
+        out_shape = net_out.shape
+        if self.model.out_size is not None:
+            out_size = self.model.out_size
+            net_out = net_out.reshape(out_size)
+            net_out = np.transpose(net_out, [2, 0, 1])
+        net_out = net_out.astype(np.float32)
+        bboxes  = self.model.postprocess(frame, net_out) 
+        return bboxes
+        
+    def detection_task(self):
+        """ A python Thread for processing queued frames from camera.
+        """
+        self.fps = FPS().start()
+        while True:
+            frame, preproc, skip_frame = self.inp_q.get()
+            self.inp_q.task_done()
+            if frame is None: break
+            if self.stopped is True: break
+            self.process_frame(frame, preproc)
+
+    def detect(self, frame):
+        """ Process a frame from camera. The frame is queued in the Frame FIFO for 
+        later processing through the detection_task.
+        
+        Parameters
+        ----------
+        frame: numpy.ndarray
+            Captured frame from Camera Device.
+        
+        Returns
+        -------
+        A boolean flag whether the capturing is stopped or not.
+        """
+        preproc = self.model.preprocess(frame)
+        self.inp_q.put((frame, preproc, None))
+
+    def stop(self):
+        super().stop()
+        self.inp_q.put((None, None, None))
+
+    def close(self):
+        self.mvncs.unload_model()
+        self.mvncs.close()
