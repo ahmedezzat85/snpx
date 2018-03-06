@@ -5,6 +5,22 @@ import cv2
 import logging
 from . imagenet_downloader import ImageNetDownloader
 
+Esc_KEY   = 27
+Enter_KEY = 13
+
+def is_key_pressed(key):
+    key_pressed = False
+    k = cv2.waitKey(1) & 0xFF
+    if k == key:
+        key_pressed = True
+    return key_pressed
+
+def Esc_key_pressed():
+    return is_key_pressed(Esc_KEY)
+
+def Enter_key_pressed():
+    return is_key_pressed(Enter_KEY)
+
 class DictToAttrs(object):
     def __init__(self, d):
         self.__dict__ = d
@@ -53,6 +69,7 @@ def download_images(wnids):
     for id in wnids:
         list = downloader.getImageURLsOfWnid(id)
         downloader.downloadImagesByURLs(id, list)
+
 
 if __name__ == '__main__':
     download_images(['n08505018'])
