@@ -5,6 +5,8 @@ import cv2
 import numpy as np
 from time import time, sleep
 from datetime import datetime
+from queue import Queue
+from threading import Thread
 from imutils.video import FPS
 
 from snpx import utils
@@ -151,7 +153,9 @@ class SNPXMvNCSDetector(SNPXBaseDetector):
             self.fps.update()
 
         # Get Inference Result
+        print ('AAAAAAAAAAAAA')
         self.net_out, _ = self.mvncs.get_output()
+        print ('BBBBBBBBBBBBBBBBBBBB')
         self.prev_frame = frame
 
     def postprocess(self, frame, net_out):
@@ -168,13 +172,15 @@ class SNPXMvNCSDetector(SNPXBaseDetector):
     def detection_task(self):
         """ A python Thread for processing queued frames from camera.
         """
-        self.fps = FPS().start()
+        print ('THREAD STARTED')
         while True:
-            frame, preproc, skip_frame = self.inp_q.get()
+            frame, preproc = self.inp_q.get()
+            print ('QUEUED FRAME')
             self.inp_q.task_done()
             if frame is None: break
             if self.stopped is True: break
             self.process_frame(frame, preproc)
+        print ('THREAD ENDED')
 
     def detect(self, frame):
         """ Process a frame from camera. The frame is queued in the Frame FIFO for 
@@ -190,11 +196,11 @@ class SNPXMvNCSDetector(SNPXBaseDetector):
         A boolean flag whether the capturing is stopped or not.
         """
         preproc = self.model.preprocess(frame)
-        self.inp_q.put((frame, preproc, None))
+        self.inp_q.put((frame, preproc))
 
     def stop(self):
         super().stop()
-        self.inp_q.put((None, None, None))
+        self.inp_q.put((None, None))
 
     def close(self):
         self.mvncs.unload_model()

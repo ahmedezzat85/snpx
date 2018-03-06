@@ -29,6 +29,7 @@ try:
                 self.ncs_graph.SetGraphOption(mvnc.GraphOption.DONT_BLOCK, 1)
 
         def load_input(self, input_tensor):
+            print ('INPUT FRAME')
             input_tensor = input_tensor.astype(np.float16)
             self.ncs_graph.LoadTensor(input_tensor, None)
 
