@@ -29,13 +29,12 @@ try:
                 self.ncs_graph.SetGraphOption(mvnc.GraphOption.DONT_BLOCK, 1)
 
         def load_input(self, input_tensor):
-            print ('INPUT FRAME')
             input_tensor = input_tensor.astype(np.float16)
             self.ncs_graph.LoadTensor(input_tensor, None)
 
         def get_output(self):
-            net_out = None
-            while net_out is None:
+            ncs_out = None
+            while ncs_out is None:
                 ncs_out, _ = self.ncs_graph.GetResult()
             ncs_time = np.sum(self.ncs_graph.GetGraphOption(mvnc.GraphOption.TIME_TAKEN))
             return ncs_out, ncs_time

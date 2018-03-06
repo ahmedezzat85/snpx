@@ -153,9 +153,7 @@ class SNPXMvNCSDetector(SNPXBaseDetector):
             self.fps.update()
 
         # Get Inference Result
-        print ('AAAAAAAAAAAAA')
         self.net_out, _ = self.mvncs.get_output()
-        print ('BBBBBBBBBBBBBBBBBBBB')
         self.prev_frame = frame
 
     def postprocess(self, frame, net_out):
@@ -172,15 +170,12 @@ class SNPXMvNCSDetector(SNPXBaseDetector):
     def detection_task(self):
         """ A python Thread for processing queued frames from camera.
         """
-        print ('THREAD STARTED')
         while True:
             frame, preproc = self.inp_q.get()
-            print ('QUEUED FRAME')
             self.inp_q.task_done()
             if frame is None: break
             if self.stopped is True: break
             self.process_frame(frame, preproc)
-        print ('THREAD ENDED')
 
     def detect(self, frame):
         """ Process a frame from camera. The frame is queued in the Frame FIFO for 

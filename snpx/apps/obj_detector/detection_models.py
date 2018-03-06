@@ -28,7 +28,7 @@ class YoloModel(object):
         h, w = self.in_size
         img = cv2.resize(image, (w, h))
         if resize_only is False:
-            img = img * self.scale
+            img = img / 255.
         return img
 
     def postprocess(self, frame, net_out):
