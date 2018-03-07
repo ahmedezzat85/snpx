@@ -138,7 +138,6 @@ try:
             self.cam = PiCamera()
             self.name = win_name
             self.cam.resolution = resolution
-            self.stopped = False
             self.setup   = True
  
         def default_cb(self, frame):
@@ -172,9 +171,6 @@ try:
                 self.cap.truncate(0)
                 if stop_cap is True: break
             
-        def stop(self):
-            self.stopped = True
-
         def read(self):
             self.cam.capture(self.cap, format="bgr", use_video_port=True)
             frame = self.cap.array
