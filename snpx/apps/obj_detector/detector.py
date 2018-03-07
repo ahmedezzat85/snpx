@@ -13,6 +13,17 @@ from snpx import utils
 from . detection_models import get_model
 from .. mvnc_dev import MvNCS
 
+def snpx_object_detector(platform, camera, model_name, det_cb=None):
+    """ """
+    if platform == 'mvncs':
+        detector = SNPXMvNCSDetector(camera, model_name, det_cb)
+    elif platform == 'opencv':
+        detector = SNPXOpenCVDetector(camera, model_name, det_cb)
+    else:
+        raise ValueError('Unknown Platform for object detection %s', platform)
+
+    return detector
+
 class SNPXBaseDetector(object):
     """ Base class for all Object Detector platforms.
 
@@ -61,11 +72,7 @@ class SNPXBaseDetector(object):
         print("Elapsed = {:.2f}".format(self.fps.elapsed()))
         print("FPS     = {:.2f}".format(self.fps.fps()))
 
-    def draw_bounding_boxes(self, img, bboxes):
-        for bbox in bboxes:
-            self._draw_box(img, bbox)    
-        
-    def _draw_box(self, img, box, box_color=(0, 255, 0)):
+    def draw_bbox(self, img, box, box_color=(0, 255, 0)):
         """ draw a single bounding box on the image """
         name, x_start, x_end, y_start, y_end, score = box
         h, w, _ = img.shape
@@ -82,7 +89,8 @@ class SNPXBaseDetector(object):
                     cv2.FONT_HERSHEY_SIMPLEX, font, (0, 0, 0), thick//3)
 
     def _default_cb(self, frame, bboxes):
-        self.draw_bounding_boxes(frame, bboxes)
+        for bbox in bboxes:
+            self.draw_bbox(frame, bbox)    
         cv2.imshow(self.cam.name, frame)
         cv2.waitKey(1)
         if utils.Esc_key_pressed():
@@ -121,7 +129,7 @@ class SNPXOpenCVDetector(SNPXBaseDetector):
         super().stop()
 
     def close(self):
-        pass
+        cv2.destroyAllWindows()
 
 class SNPXMvNCSDetector(SNPXBaseDetector):
     """ """
@@ -198,3 +206,4 @@ class SNPXMvNCSDetector(SNPXBaseDetector):
                 # Make sure the queue is empty to release any blocked put call
                 if self.inp_q.empty():
                     break
+
