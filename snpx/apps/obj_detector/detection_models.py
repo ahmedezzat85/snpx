@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import os
 import cv2
 import numpy as np
+from numpy.linalg import matrix_rank
 from . yolo import yolo_get_candidate_objects
 from snpx import PRETRAINED_MODELS_ROOT_DIR, utils
 
@@ -45,12 +46,14 @@ class SSD(object):
         self.mean       = 127.5
         self.scale      = 0.007843
         self.in_size    = (300, 300)
+        self.out_size   = None
         self.model_prfx = os.path.join(_DETECTION_MODELS_ROOT, model_name, model_name)
     
     def preprocess(self, image, resize_only=False):
         h, w = self.in_size
         img = cv2.resize(image, (w, h))
         if resize_only is False:
+            img = img.astype(np.float32)
             img -= self.mean
             img = img * self.scale
         return img
@@ -60,13 +63,24 @@ class SSD(object):
                     "cat", "chair", "cow", "diningtable", "dog", "horse", "motorbike", "person", 
                     "pottedplant", "sheep", "sofa", "train", "tvmonitor"]
 
+        if matrix_rank(net_out) < 2:
+            num_boxes = int(net_out[0])
+            out       = net_out[7:7+num_boxes*7]
+            net_out   = np.reshape(out, [num_boxes, 7])
+        else:
+            out     = np.squeeze(net_out, axis=0)
+            net_out = np.squeeze(out, axis=0)
+            num_boxes = net_out.shape[0]
+        if num_boxes == 0:
+            return
+
         # loop over the detections
         h, w, _ = frame.shape
         bboxes = list()
-        for i in np.arange(0, net_out.shape[2]):
+        for i in np.arange(0, num_boxes):
             # extract the confidence (i.e., probability) associated with the
             # prediction
-            confidence = net_out[0, 0, i, 2]
+            confidence = net_out[i, 2]
 
             # filter out weak detections by ensuring the `confidence` is
             # greater than the minimum confidence
@@ -74,8 +88,8 @@ class SSD(object):
                 # extract the index of the class label from the `detections`,
                 # then compute the (x, y)-coordinates of the bounding box for
                 # the object
-                idx = int(net_out[0, 0, i, 1])
-                box = net_out[0, 0, i, 3:7] * np.array([w, h, w, h])
+                idx = int(net_out[i, 1])
+                box = net_out[i, 3:7] * np.array([w, h, w, h])
                 (xmin, ymin, xmax, ymax) = box.astype("int")
 
                 # display the prediction

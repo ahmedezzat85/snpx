@@ -15,11 +15,11 @@ def main():
     r1,r2 = args.resolution.split('x')
     resolution = (int(r1), int(r2))
     snpx_cam = snpx_camera(args.camera, 'Synaplexus Object Detection App', resolution)
-    twd = TripWireDetector(snpx_cam, args.platform, args.model)
-    twd.start()
-    # detector = snpx_object_detector(args.platform, snpx_cam, args.model)
-    # detector.start()
-    # detector.close()
+    # twd = TripWireDetector(snpx_cam, args.platform, args.model)
+    # twd.start()
+    detector = snpx_object_detector(args.platform, snpx_cam, args.model)
+    detector.start()
+    detector.close()
     
 if __name__ == "__main__":
     main()
